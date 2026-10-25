@@ -7,8 +7,9 @@ use std::sync::mpsc::Sender;
 
 pub const COVER_W: i32 = 300;
 pub const COVER_H: i32 = 400;
-pub const KREADER: &str = "/var/local/kos/bin/kreader";
-const DIRS: [&str; 2] = ["/mnt/us/books", "/mnt/us/documents"];
+fn dirs() -> [String; 2] {
+    [crate::paths::p("/mnt/us/books"), crate::paths::p("/mnt/us/documents")]
+}
 pub const EXTS: [&str; 12] = ["epub", "pdf", "cbz", "fb2", "xps", "mobi", "azw", "azw3", "txt", "html", "htm", "djvu"];
 
 #[derive(Clone)]
@@ -54,8 +55,8 @@ fn walk(dir: &Path, out: &mut Vec<Item>, depth: u32) {
 
 pub fn scan() -> Vec<Item> {
     let mut v = vec![];
-    for d in DIRS {
-        walk(Path::new(d), &mut v, 0);
+    for d in dirs() {
+        walk(Path::new(&d), &mut v, 0);
     }
     v.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
     v
@@ -101,7 +102,7 @@ pub fn read_pgm(p: &Path) -> Option<(i32, i32, Vec<u8>)> {
 /// Background worker: renders missing covers one by one and notifies the UI.
 pub fn spawn_covers(items: Vec<Item>, data: PathBuf, tx: Sender<Ev>) {
     std::thread::spawn(move || {
-        let Ok(mut child) = Command::new(KREADER).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn() else {
+        let Ok(mut child) = Command::new(crate::paths::kreader()).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn() else {
             return;
         };
         let mut sin = child.stdin.take().unwrap();

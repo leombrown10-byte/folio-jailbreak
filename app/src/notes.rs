@@ -321,7 +321,8 @@ impl App {
     }
 
     pub fn export_note(&mut self, i: usize) {
-        let dir = std::path::Path::new("/mnt/us/documents/KOS Notes");
+        let dir = std::path::PathBuf::from(crate::paths::p("/mnt/us/documents/KOS Notes"));
+        let dir = dir.as_path();
         let _ = std::fs::create_dir_all(dir);
         let n = self.notes[i].clone();
         let safe: String = n.title.chars().map(|c| if c.is_alphanumeric() || c == ' ' { c } else { '_' }).collect();

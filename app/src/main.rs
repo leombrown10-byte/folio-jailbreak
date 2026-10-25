@@ -7,9 +7,11 @@ mod input;
 mod library;
 mod music;
 mod notes;
+mod paths;
 mod quick;
 mod reader;
 mod screens;
+mod sim;
 mod store;
 mod usb;
 mod sys;
@@ -385,7 +387,7 @@ impl App {
         // healthy for 20s: clear the autostart crash guard
         if !self.boot_marked && self.started.elapsed() > Duration::from_secs(20) {
             self.boot_marked = true;
-            let _ = std::fs::remove_file("/var/local/kos/.starting");
+            let _ = std::fs::remove_file(paths::p("/var/local/kos/.starting"));
         }
         // long press
         if self.touch.down && !self.touch.moved && !self.touch.long && self.touch.t0.elapsed() > Duration::from_millis(650) {
@@ -730,7 +732,8 @@ impl App {
             }
             Act::UsbNet => {
                 // Developer SSH over USB is chosen at boot by this marker file; normal mode is a plain USB drive.
-                let auto = std::path::Path::new("/mnt/us/usbnetlite/auto");
+                let auto = std::path::PathBuf::from(paths::p("/mnt/us/usbnetlite/auto"));
+                let auto = auto.as_path();
                 let msg = if auto.exists() {
                     let _ = std::fs::remove_file(auto);
                     "USB network off. Restart to apply."
@@ -782,6 +785,9 @@ impl App {
 
 /// Drive-based updates: files in /mnt/us/kos-update/ replace the installed ones at start-up, then the app restarts.
 fn self_update() {
+    if sim::enabled() {
+        return; // the simulator runs the binary you built; nothing to install
+    }
     let dir = std::path::Path::new("/mnt/us/kos-update");
     let mut restart = false;
     let d = "/var/local/kos/data";
@@ -816,10 +822,19 @@ fn main() {
             }
         }
     }
+    sim::connect();
     let (tx, rx) = channel::<Ev>();
     let mut app = App::new(tx.clone());
     input::spawn_cmd_fifo(tx.clone());
-    input::spawn(tx, app.cal.clone());
+    if sim::enabled() {
+        // the simulator sends touches in screen pixels: no touch setup needed
+        let c = Cal { v: 3, m: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0], ..Cal::default() };
+        *app.cal.lock().unwrap() = c.clone();
+        app.st.d.settings.cal = Some(c);
+        sim::spawn_input(tx);
+    } else {
+        input::spawn(tx, app.cal.clone());
+    }
     app.boot();
     while !app.quit {
         match rx.recv_timeout(Duration::from_millis(100)) {

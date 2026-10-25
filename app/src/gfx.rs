@@ -354,6 +354,21 @@ impl Canvas {
         d.x1 = d.x1.min(W);
         d.y1 = d.y1.min(H);
         let (w, h) = (d.w(), d.h());
+        if crate::sim::enabled() {
+            let mut px = Vec::with_capacity((w * h) as usize);
+            for y in d.y0..d.y1 {
+                let o = (y * W) as usize;
+                px.extend_from_slice(&self.buf[o + d.x0 as usize..o + d.x1 as usize]);
+            }
+            let mode = match wf {
+                Wf::Auto => 0,
+                Wf::Fast => 1,
+                Wf::Text => 2,
+                Wf::Full => 3,
+            };
+            crate::sim::frame(d.x0, d.y0, w, h, mode, flash, &px);
+            return;
+        }
         let mut img = format!("P5\n{} {}\n255\n", w, h).into_bytes();
         for y in d.y0..d.y1 {
             let o = (y * W) as usize;

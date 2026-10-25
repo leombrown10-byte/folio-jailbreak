@@ -14,7 +14,9 @@ use symphonia::core::meta::{MetadataOptions, StandardTagKey};
 use symphonia::core::probe::Hint;
 use symphonia::core::units::Time;
 
-pub const MUSIC_DIR: &str = "/mnt/us/music";
+fn music_dir() -> String {
+    crate::paths::p("/mnt/us/music")
+}
 const EXTS: [&str; 8] = ["mp3", "flac", "ogg", "oga", "wav", "m4a", "aac", "mp4"];
 
 #[derive(Clone, Debug)]
@@ -151,7 +153,7 @@ fn walk(dir: &std::path::Path, out: &mut Vec<String>, depth: u32) {
 pub fn scan(evtx: Sender<Ev>) {
     std::thread::spawn(move || {
         let mut paths = vec![];
-        walk(std::path::Path::new(MUSIC_DIR), &mut paths, 0);
+        walk(std::path::Path::new(&music_dir()), &mut paths, 0);
         let tracks: Vec<Track> = paths.iter().map(|p| read_tags(p)).collect();
         let _ = evtx.send(Ev::Music(MEv::Library(tracks)));
     });

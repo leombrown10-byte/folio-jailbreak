@@ -549,7 +549,7 @@ impl App {
                 ("Export highlights".into(), "to the exports folder".into()),
                 ("Sleep screen".into(), ["player and clock", "book cover", "highlight quote"][s.sleep_screen as usize % 3].into()),
                 ("Focus timer".into(), if self.focus_until.is_some() { "running".into() } else { "25 min".into() }),
-                ("USB network (developer)".into(), if std::path::Path::new("/mnt/us/usbnetlite/auto").exists() { "on at boot".into() } else { "off".into() }),
+                ("USB network (developer)".into(), if std::path::Path::new(&crate::paths::p("/mnt/us/usbnetlite/auto")).exists() { "on at boot".into() } else { "off".into() }),
                 ("Restart Folio".into(), "".into()),
                 ("Restart device".into(), "".into()),
                 ("Power off".into(), "".into()),

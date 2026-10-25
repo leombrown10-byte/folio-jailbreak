@@ -48,7 +48,7 @@ fn sh_timeout(cmd: &str, limit: Option<std::time::Duration>) -> String {
 
 fn slow_log(msg: &str) {
     use std::io::Write;
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/var/local/kos/data/slow.log") {
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(crate::paths::p("/var/local/kos/data/slow.log")) {
         let _ = writeln!(f, "{} {}", now(), msg);
     }
 }

@@ -18,7 +18,7 @@ pub struct Kr {
 
 impl Kr {
     pub fn start() -> Option<Kr> {
-        let mut child = Command::new(library::KREADER).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().ok()?;
+        let mut child = Command::new(crate::paths::kreader()).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().ok()?;
         let sin = child.stdin.take()?;
         let sout = BufReader::new(child.stdout.take()?);
         Some(Kr { child, sin, sout })

@@ -146,7 +146,8 @@ impl App {
     // ---------------------------------------------------------------- export
     /// One Markdown file per book (highlights and notes) in /mnt/us/exports.
     pub fn export_highlights(&mut self) {
-        let dir = std::path::Path::new("/mnt/us/exports");
+        let dir = std::path::PathBuf::from(crate::paths::p("/mnt/us/exports"));
+        let dir = dir.as_path();
         if std::fs::create_dir_all(dir).is_err() {
             return self.toast("Could not write to the drive");
         }
