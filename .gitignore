@@ -1,0 +1,22 @@
+# Backups of Amazon's own software taken from a device: never publish these
+build/backup/
+
+# Third-party source trees and tarballs (fetched by build/fetch-deps.sh)
+build/mupdf-*/
+build/mupdf*.tgz
+build/djvulibre-*/
+build/djvulibre*.tgz
+build/libmobi/
+build/wn/
+
+# Build output (attach to GitHub Releases instead)
+build/dist/
+build/last-build.log
+build/dict/*.tsv
+build/dict/*.json
+app/target/
+
+# Local device state / screenshots
+*.png.tmp
+out.png
+.DS_Store
