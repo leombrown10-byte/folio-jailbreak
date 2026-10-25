@@ -1,8 +1,10 @@
 //! Simulator link. With KOS_SIM=host:port the app sends its screen updates to folio-sim over TCP instead of
 //! drawing with FBInk, and receives touches / power presses from it instead of reading /dev/input.
 //!
-//! app -> sim:  b'F', x, y, w, h (u16 LE), mode (0 auto, 1 fast, 2 text, 3 full), flash (0/1), then w*h gray bytes
-//! sim -> app:  text lines: "D x y" | "M x y" | "U x y" (touch, in screen pixels) | "P" (power button)
+//! app -> sim:  b'H', pw, ph (u16 LE) once at connect: the panel size being simulated (default 1072x1448);
+//!              then b'F', x, y, w, h (u16 LE), mode (0 auto, 1 fast, 2 text, 3 full), flash (0/1), w*h gray bytes
+//!              (frames are in panel pixels)
+//! sim -> app:  text lines: "D x y" | "M x y" | "U x y" (touch, in panel pixels) | "P" (power button)
 use crate::Ev;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
@@ -20,8 +22,14 @@ pub fn enabled() -> bool {
 pub fn connect() {
     let Ok(addr) = std::env::var("KOS_SIM") else { return };
     for _ in 0..60 {
-        if let Ok(s) = TcpStream::connect(&addr) {
+        if let Ok(mut s) = TcpStream::connect(&addr) {
             let _ = s.set_nodelay(true);
+            // handshake: the panel size this run simulates (frames and touches use panel pixels)
+            let (pw, ph) = crate::display::size();
+            let mut h = vec![b'H'];
+            h.extend_from_slice(&(pw as u16).to_le_bytes());
+            h.extend_from_slice(&(ph as u16).to_le_bytes());
+            let _ = s.write_all(&h);
             let _ = CONN.set(Mutex::new(s));
             return;
         }
@@ -53,10 +61,11 @@ pub fn spawn_input(tx: Sender<Ev>) {
         for line in BufReader::new(read).lines().flatten() {
             let p: Vec<&str> = line.split_whitespace().collect();
             let n = |i: usize| p.get(i).and_then(|x| x.parse::<i32>().ok()).unwrap_or(0);
+            let l = crate::display::to_logical(n(1), n(2)); // touches arrive in panel pixels
             let _ = match p.first().copied() {
-                Some("D") => tx.send(Ev::Down(n(1), n(2))),
-                Some("M") => tx.send(Ev::Move(n(1), n(2))),
-                Some("U") => tx.send(Ev::Up(n(1), n(2))),
+                Some("D") => tx.send(Ev::Down(l.0, l.1)),
+                Some("M") => tx.send(Ev::Move(l.0, l.1)),
+                Some("U") => tx.send(Ev::Up(l.0, l.1)),
                 Some("P") => tx.send(Ev::Power),
                 _ => Ok(()),
             };

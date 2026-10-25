@@ -26,7 +26,8 @@ the e-ink panel: fast page turns, a typeset reader, Bluetooth music, handwritten
 | Device | Firmware | Status |
 |---|---|---|
 | Kindle Paperwhite 4 (PW4, 10th gen) | 5.17.1.0.3 | works (author's device) |
-| Anything else | — | **untested.** Likely needs changes (screen size, touch device, framebuffer format). Reports and patches welcome. |
+| Other touchscreen Kindles | — | **designed to run, untested.** One build adapts to any panel size and finds the touch panel itself; see [docs/DEVICES.md](docs/DEVICES.md) for the model matrix and what's unknown. Reports welcome. |
+| Kindles without a touchscreen | — | not supported |
 
 ## Install (summary)
 

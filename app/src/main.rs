@@ -1,6 +1,7 @@
 mod bt;
 mod convert;
 mod dict;
+mod display;
 mod extras;
 mod gfx;
 mod input;

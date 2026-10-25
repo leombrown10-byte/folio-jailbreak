@@ -353,27 +353,30 @@ impl Canvas {
         d.y1 = (d.y1 + 1) & !1;
         d.x1 = d.x1.min(W);
         d.y1 = d.y1.min(H);
-        let (w, h) = (d.w(), d.h());
-        if crate::sim::enabled() {
-            let mut px = Vec::with_capacity((w * h) as usize);
-            for y in d.y0..d.y1 {
-                let o = (y * W) as usize;
+        // the piece to send, in panel pixels (scaled when the panel is not 1072x1448)
+        let (x, y, w, h, px) = if crate::display::scaled() {
+            let p = crate::display::scale_region(&self.buf, d.x0, d.y0, d.x1, d.y1);
+            (p.x, p.y, p.w, p.h, p.px)
+        } else {
+            let mut px = Vec::with_capacity((d.w() * d.h()) as usize);
+            for yy in d.y0..d.y1 {
+                let o = (yy * W) as usize;
                 px.extend_from_slice(&self.buf[o + d.x0 as usize..o + d.x1 as usize]);
             }
+            (d.x0, d.y0, d.w(), d.h(), px)
+        };
+        if crate::sim::enabled() {
             let mode = match wf {
                 Wf::Auto => 0,
                 Wf::Fast => 1,
                 Wf::Text => 2,
                 Wf::Full => 3,
             };
-            crate::sim::frame(d.x0, d.y0, w, h, mode, flash, &px);
+            crate::sim::frame(x, y, w, h, mode, flash, &px);
             return;
         }
         let mut img = format!("P5\n{} {}\n255\n", w, h).into_bytes();
-        for y in d.y0..d.y1 {
-            let o = (y * W) as usize;
-            img.extend_from_slice(&self.buf[o + d.x0 as usize..o + d.x1 as usize]);
-        }
+        img.extend_from_slice(&px);
         if std::fs::write(TMP_IMG, &img).is_err() {
             return;
         }
@@ -384,7 +387,7 @@ impl Canvas {
             Wf::Full => "GC16",
         };
         let mut cmd = Command::new(FBINK);
-        cmd.arg("-g").arg(format!("file={},x={},y={},w={},h={}", TMP_IMG, d.x0, d.y0, w, h)).arg("-W").arg(mode);
+        cmd.arg("-g").arg(format!("file={},x={},y={},w={},h={}", TMP_IMG, x, y, w, h)).arg("-W").arg(mode);
         if flash {
             cmd.arg("-f");
         }

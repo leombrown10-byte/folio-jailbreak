@@ -5,8 +5,38 @@ use std::fs::File;
 use std::io::Read;
 use std::sync::mpsc::Sender;
 
-const TOUCH_DEV: &str = "/dev/input/event2";
-const KEY_DEVS: [&str; 2] = ["/dev/input/event0", "/dev/input/event1"];
+/// Touch panels differ between Kindles (device number, multitouch or single-touch axes), so look for it.
+#[derive(Clone)]
+struct TouchDev {
+    path: String,
+    ax: u16, // x axis code
+    ay: u16,
+}
+
+/// Does `f` report absolute axis `code`? (EVIOCGBIT(EV_ABS))
+fn has_abs(f: &File, code: usize) -> bool {
+    use std::os::unix::io::AsRawFd;
+    let mut bits = [0u8; 8];
+    let req: u32 = (2u32 << 30) | (8u32 << 16) | (0x45u32 << 8) | (0x20 + 3);
+    let r = unsafe { libc::ioctl(f.as_raw_fd(), req as _, bits.as_mut_ptr()) };
+    r >= 0 && code / 8 < 8 && bits[code / 8] >> (code % 8) & 1 == 1
+}
+
+fn find_touch() -> TouchDev {
+    // /dev/input/event2 first: that is the Paperwhite 4's panel and must keep working as before
+    let mut cands = vec!["/dev/input/event2".to_string()];
+    cands.extend((0..10).map(|i| format!("/dev/input/event{}", i)));
+    for path in cands {
+        let Ok(f) = File::open(&path) else { continue };
+        if has_abs(&f, 0x35) && has_abs(&f, 0x36) {
+            return TouchDev { path, ax: 0x35, ay: 0x36 };
+        }
+        if has_abs(&f, 0) && has_abs(&f, 1) {
+            return TouchDev { path, ax: 0, ay: 1 };
+        }
+    }
+    TouchDev { path: "/dev/input/event2".into(), ax: 0x35, ay: 0x36 }
+}
 
 #[repr(C)]
 #[derive(Default)]
@@ -22,14 +52,15 @@ struct AbsInfo {
 /// Raw (max_x, max_y) of the touch panel.
 pub fn touch_range() -> (i32, i32) {
     use std::os::unix::io::AsRawFd;
-    let Ok(f) = File::open(TOUCH_DEV) else { return (1071, 1447) };
+    let dev = find_touch();
+    let Ok(f) = File::open(&dev.path) else { return (1071, 1447) };
     let get = |axis: u32| -> i32 {
         let mut a = AbsInfo::default();
         let req: u32 = (2u32 << 30) | (24u32 << 16) | (0x45u32 << 8) | (0x40 + axis);
         let r = unsafe { libc::ioctl(f.as_raw_fd(), req as _, &mut a as *mut AbsInfo) };
         if r < 0 { 0 } else { a.max }
     };
-    let (mx, my) = (get(0x35), get(0x36));
+    let (mx, my) = (get(dev.ax as u32), get(dev.ay as u32));
     (if mx > 0 { mx } else { 1071 }, if my > 0 { my } else { 1447 })
 }
 
@@ -62,8 +93,10 @@ pub fn map(cal: &Cal, rx: i32, ry: i32) -> (i32, i32) {
 /// Spawn the reader threads. The shared calibration is looked up per event so the setup screen can change it live.
 pub fn spawn(tx: Sender<Ev>, cal: std::sync::Arc<std::sync::Mutex<Cal>>) {
     let txt = tx.clone();
+    let dev = find_touch();
+    let touch_path = dev.path.clone();
     std::thread::spawn(move || {
-        let Ok(mut f) = File::open(TOUCH_DEV) else { return };
+        let Ok(mut f) = File::open(&dev.path) else { return };
         let (mut rx, mut ry) = (0, 0);
         let (mut down, mut pdown, mut up, mut moved) = (false, false, false, false);
         let mut buf = [0u8; 16];
@@ -72,8 +105,8 @@ pub fn spawn(tx: Sender<Ev>, cal: std::sync::Arc<std::sync::Mutex<Cal>>) {
             let c = u16::from_le_bytes([buf[10], buf[11]]);
             let v = i32::from_le_bytes([buf[12], buf[13], buf[14], buf[15]]);
             match (t, c) {
-                (3, 0x35) => { rx = v; moved = true; }
-                (3, 0x36) => { ry = v; moved = true; }
+                (3, c) if c == dev.ax => { rx = v; moved = true; }
+                (3, c) if c == dev.ay => { ry = v; moved = true; }
                 (3, 0x39) => { if v < 0 { up = true } else if !down { pdown = true } }
                 (1, 0x14a) => { if v == 0 { up = true } else if !down { pdown = true } }
                 (0, 0) => {
@@ -99,10 +132,15 @@ pub fn spawn(tx: Sender<Ev>, cal: std::sync::Arc<std::sync::Mutex<Cal>>) {
             }
         }
     });
-    for dev in KEY_DEVS {
+    // the power key lives on a different input device on different models: listen on all but the touch panel
+    for i in 0..10 {
+        let dev = format!("/dev/input/event{}", i);
+        if dev == touch_path {
+            continue;
+        }
         let tx = tx.clone();
         std::thread::spawn(move || {
-            let Ok(mut f) = File::open(dev) else { return };
+            let Ok(mut f) = File::open(&dev) else { return };
             let mut buf = [0u8; 16];
             while f.read_exact(&mut buf).is_ok() {
                 let t = u16::from_le_bytes([buf[8], buf[9]]);
