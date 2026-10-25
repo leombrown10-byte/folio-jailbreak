@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* Friendlier: first-run how-to card (also under Settings > More), reader hint for new readers, confirmation before restart/power off/recalibrate/developer USB, a "Connect headphones" button on the Music tab.
 * Draggable quick-panel sliders; top and bottom margin sliders; music sleep timer.
 * Shuffle, repeat, audiobook resume with ±30 s skip.
 * Word list with flashcards, reading stats, time left in chapter/book, highlight export (Markdown).

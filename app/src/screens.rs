@@ -327,6 +327,9 @@ impl App {
         let out_bt = crate::sys::audio_output_is_bt();
         let status = if out_bt { if bt.is_empty() { "Bluetooth audio connected".to_string() } else { format!("Playing to {}", bt) } } else { "No Bluetooth headphones connected".to_string() };
         self.cv.text(F::Sans, 26.0, 52, 176, &status, if out_bt { MID } else { DARK });
+        if !out_bt {
+            button(&mut self.cv, Rect::new(W - 430, 150, 380, 62), "Connect headphones", true);
+        }
         self.cv.fill(50, 220, W - 100, 3, BLACK);
         let (cur, playing, pos, dur, vol) = {
             let s = self.player.st.lock().unwrap();
@@ -441,6 +444,9 @@ impl App {
         let per = if has_cur { ((MINI_Y - 40 - 800) / 88).max(1) as usize } else { ((MINI_Y - 40 - 440) / 88).max(1) as usize };
         let pages = ((self.tracks.len() + per - 1) / per).max(1);
         if y < 220 {
+            if y >= 150 && x >= W - 430 && !crate::sys::audio_output_is_bt() {
+                return self.bt_open();
+            }
             if x > W - 280 && x < W - 190 && self.music_page > 0 {
                 self.music_page -= 1;
                 self.draw_screen(false);
@@ -502,7 +508,7 @@ impl App {
             let i = self.music_page * per + ((y - top) / 88) as usize;
             if i < self.tracks.len() {
                 if !crate::sys::audio_output_is_bt() {
-                    self.toast("Connect Bluetooth headphones first (More → Bluetooth)");
+                    self.toast("Connect headphones first: tap the button at the top");
                     return;
                 }
                 {
@@ -530,7 +536,7 @@ impl App {
                 ("Default text size".into(), format!("{:.0} pt", s.em)),
                 ("Bluetooth audio".into(), if crate::sys::audio_output_is_bt() { if bt.is_empty() { "connected".into() } else { bt } } else { "not connected".into() }),
                 ("Rescan library".into(), format!("{} {} · {} {}", self.items.len(), if self.items.len() == 1 { "book" } else { "books" }, self.tracks.len(), if self.tracks.len() == 1 { "track" } else { "tracks" })),
-                ("Calibrate touch".into(), "".into()),
+                ("Calibrate touch".into(), "if taps land in the wrong place".into()),
                 ("Sleep now".into(), "".into()),
                 ("Dark reading".into(), (if s.dark { "on" } else { "off" }).into()),
                 ("Full refresh while reading".into(), match s.flash_every { 0 => "never".into(), 1 => "every page".into(), n => format!("every {} pages", n) }),
@@ -547,7 +553,7 @@ impl App {
                 ("Restart Folio".into(), "".into()),
                 ("Restart device".into(), "".into()),
                 ("Power off".into(), "".into()),
-                ("".into(), "".into()),
+                ("How to use Folio".into(), "gestures and tips".into()),
                 ("‹  Back".into(), "".into()),
             ]
         };
@@ -582,10 +588,16 @@ impl App {
                     self.focus_toggle();
                     self.draw_screen(false);
                 }
-                4 => self.do_act(Act::UsbNet),
-                5 => self.do_act(Act::Quit),
-                6 => self.do_act(Act::Reboot),
-                7 => self.do_act(Act::Poweroff),
+                4 => self.confirm(
+                    "Developer USB network",
+                    "Turns on SSH access over the USB cable at the next restart. While it is on, the FOLIO drive does not appear on your computer. Turn it off again to copy books.",
+                    "Switch",
+                    Act::UsbNet,
+                ),
+                5 => self.confirm("Restart Folio?", "The app closes and opens again. Music stops.", "Restart", Act::Quit),
+                6 => self.confirm("Restart the Kindle?", "The whole device reboots. This takes about a minute.", "Restart", Act::Reboot),
+                7 => self.confirm("Power off?", "The Kindle turns off completely. Press the power button to start it again.", "Power off", Act::Poweroff),
+                8 => self.show_help(),
                 _ => {}
             }
             return;
@@ -607,7 +619,7 @@ impl App {
             }
             2 => self.bt_open(),
             3 => self.do_act(Act::Rescan),
-            4 => self.do_act(Act::Calibrate),
+            4 => self.confirm("Recalibrate touch?", "You will tap the center of five circles. Do this if taps land in the wrong place.", "Start", Act::Calibrate),
             5 => self.do_act(Act::Sleep),
             6 => {
                 self.st.d.settings.dark = !self.st.d.settings.dark;

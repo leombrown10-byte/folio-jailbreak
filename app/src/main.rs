@@ -213,6 +213,16 @@ impl App {
         if !usb::storage_available() {
             self.usb_enter();
         }
+        self.first_run_help();
+    }
+
+    /// Show the how-to card once, as soon as the touch setup is done.
+    fn first_run_help(&mut self) {
+        if self.screen == Screen::Home && !self.st.d.settings.seen_help {
+            self.st.d.settings.seen_help = true;
+            self.st.save();
+            self.show_help();
+        }
     }
 
     // ---------------- events ----------------
@@ -506,6 +516,7 @@ impl App {
                 self.st.save();
                 self.screen = Screen::Home;
                 self.draw_screen(true);
+                self.first_run_help();
             }
             _ => {
                 self.toast("Touch setup failed, try again");

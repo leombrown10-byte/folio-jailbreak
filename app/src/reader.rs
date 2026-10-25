@@ -191,6 +191,11 @@ impl App {
         self.screen = Screen::Reader;
         self.modal = None;
         self.reader_draw(true);
+        if self.st.d.settings.hints < 3 {
+            self.st.d.settings.hints += 1;
+            self.st.save();
+            self.toast("Tap the middle for the menu · hold a word for its meaning");
+        }
     }
 
     pub fn close_book(&mut self) {

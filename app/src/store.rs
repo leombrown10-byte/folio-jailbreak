@@ -100,6 +100,8 @@ pub struct Settings {
     pub shuffle: bool,
     pub repeat: u8,         // 0 off, 1 all, 2 one
     pub sleep_screen: u8,   // 0 player/clock, 1 book cover, 2 highlight quote
+    pub seen_help: bool,    // the how-to card has been shown once
+    pub hints: u8,          // times the "tap the middle for the menu" hint was shown in the reader
 }
 
 impl Default for Settings {
@@ -107,6 +109,7 @@ impl Default for Settings {
         Settings {
             cal: None, em: 11.0, margin: 18.0, family: 1, spacing: 135, justify: false, light: 8, serif_ui: false, volume: 70, last_book: None,
             top: 60, bottom: 100, dark: false, flash_every: 8, shuffle: false, repeat: 0, sleep_screen: 0,
+            seen_help: false, hints: 0,
         }
     }
 }

@@ -12,6 +12,21 @@ pub fn fmt_left(secs: f32) -> String {
 }
 
 impl App {
+    // ---------------------------------------------------------------- help and confirmations
+    /// Ask before anything disruptive: a card with the action button and Close.
+    pub fn confirm(&mut self, title: &str, body: &str, label: &str, act: Act) {
+        let c = Card::new(&mut self.cv, title, body, vec![(label, act)]);
+        self.modal = Some(Modal::Card(c));
+        self.draw_modal();
+    }
+
+    pub fn show_help(&mut self) {
+        let body = "Reading\n• Tap the right edge for the next page, the left edge for the previous one.\n• Tap the middle for the menu: contents, search, text, notes, bookmark, light.\n• Hold a word to see what it means. It is saved to your word list.\n\nAnywhere\n• Pull down from the very top edge for brightness, volume, text size, margins, music and sleep.\n• The power button sleeps and wakes.\n\nBooks and music\n• Plug the Kindle into a computer and copy files into the books and music folders.\n• Music plays to Bluetooth headphones: connect them from the Music tab.\n\nThis help is always in Settings > More > How to use Folio.";
+        let c = Card::new(&mut self.cv, "Welcome to Folio", body, vec![]);
+        self.modal = Some(Modal::Card(c));
+        self.draw_modal();
+    }
+
     // ---------------------------------------------------------------- vocabulary
     fn vocab_path(&self) -> std::path::PathBuf {
         self.st.dir.join("vocab.tsv")
