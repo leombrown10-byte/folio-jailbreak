@@ -67,42 +67,64 @@ orientation. On a 1072×1448 panel nothing is scaled and the output is identical
 
 ## Install
 
-Written from what was done on one device. Treat every step as untested on anything else, and keep a second way
-to read: you can brick a Kindle.
+**Read this first:** installing replaces what the Kindle shows when it starts. It can be undone (see
+[Going back](#going-back)) until you choose the optional, permanent step 5. Keep a second way to read, and know that
+modifying a Kindle can brick it and voids the warranty.
 
-**0. Before you start.** You need a jailbreakable firmware (check <https://kindlemodding.org> for your model and
-firmware; do *not* update the firmware afterwards), a Mac/Linux computer with Docker (to build) and `ssh`, and a
-backup of the Kindle's contents.
+### What you need
 
-**1. Jailbreak and tools.** Follow the community guide for your firmware (the author used WinterBreak), then
-install KUAL, MRPI and USBNetwork (the "lite" variant is fine). Enable USB networking and confirm you can
-`ssh root@192.168.15.244`. The password the author's setup uses is in `build/askpass.sh`; change it if you care.
-Folio only uses USB networking as a developer link; Wi-Fi stays off.
+* A **touchscreen Kindle** on a firmware that can be jailbroken. On the Kindle: *Settings → Device Options →
+  Device Info* shows the firmware version; <https://kindlemodding.org> says whether and how that version can be
+  jailbroken. **Don't update the firmware afterwards**: updates remove the jailbreak.
+* A **Mac or Linux computer** with `ssh` and `curl`, and Docker only if you want to build files yourself.
+* A **data USB cable** (some cables only charge).
+* About **15 minutes**, plus build time if you build the helpers yourself.
 
-**2. Get the binaries.** Take `kos` (and `kreader`, `fbink`, `mobitool`, `ddjvu`) from a GitHub Release, or build
-them ([Building](#building)). Put them in `build/dist/`; the fonts are already in `build/fonts/`.
+### The short version
 
-**3. Push Folio to the Kindle.**
+1. **Jailbreak** the Kindle, then install **KUAL** and **USBNetwork** (the "lite" variant is fine). Follow the
+   guide for your model and firmware; this is the hard part and not specific to Folio. Folio uses USB networking
+   only as the link the installer talks over; Wi-Fi stays off.
+2. **Switch USB networking on.** Restart the Kindle with the cable unplugged, wait for the Home screen, then plug it
+   into the computer. Check: `ssh root@192.168.15.244` should connect (the password is in `build/askpass.sh`).
+3. **Run the installer:**
+
+   ```sh
+   git clone https://github.com/leombrown10-byte/folio-jailbreak && cd folio-jailbreak
+   ./install.sh
+   ```
+
+   It checks the connection, firmware, kernel and free space; fetches the files it needs (downloads them from the
+   latest GitHub release, copies FBInk from your Kindle, or builds them with Docker); copies Folio over; and
+   switches the start-up job. It asks before each change, and `./install.sh check` only looks.
+4. **Restart the Kindle.** Folio starts with five circles: tap the middle of each. A short how-to follows.
+5. **Add books and music:** plug the Kindle in. It shows "USB drive mode" and a drive called FOLIO. Copy files into
+   `books/` and `music/`.
+
+### Going back
+
+* `./install.sh restore` (or `build/restore-stock-ui.sh`) renames Amazon's start-up jobs back and removes Folio's.
+* This stops working after the permanent step below: without Amazon's files the stock UI can't come back.
+
+### Step by step (what the installer runs)
 
 ```sh
-build/deploy.sh          # copies everything to /var/local/kos on the Kindle's system partition
+build/deploy.sh          # copies Folio to /var/local/kos on the Kindle's system storage (not the USB drive,
+                         # which disappears while a computer is connected)
+build/install-boot.sh    # renames Amazon's UI jobs to *.amazon, installs /etc/upstart/kos.conf (reversible)
 ```
 
-Folio lives in `/var/local/kos`, not on the USB drive: the drive disappears while a computer is connected.
+Files come from `build/dist/`: `kos`, `kreader`, `mobitool`, `ddjvu`, `fbink` (the fonts are in `build/fonts/`).
+See [Building](#building) if you make them yourself.
 
-**4. Make Folio the interface (reversible).**
+If Folio crashes three times in a row at start-up, the boot supervisor shows a recovery message and brings USB
+networking up so you can log in.
 
-```sh
-build/install-boot.sh    # renames Amazon's UI start-up jobs to *.amazon and installs /etc/upstart/kos.conf
-```
+### Step 5, optional and NOT reversible: remove Amazon's software
 
-Restart the Kindle. Folio starts with a five-circle touch setup, then a short how-to card. If it crashes three
-times in a row the boot supervisor shows a recovery message and brings USB networking up so you can log in.
-To go back to the stock UI: `build/restore-stock-ui.sh`.
-
-**5. Optional: remove Amazon's software (NOT reversible).** `build/remove-amazon.sh` deletes Amazon's UI,
-services and data and installs Folio's branding. Afterwards the stock UI cannot be restored without a firmware
-reinstall. It refuses to run unless you set `FOLIO_I_UNDERSTAND_THIS_IS_PERMANENT=yes`. Back up first, for example
+`build/remove-amazon.sh` deletes Amazon's UI, services and data and installs Folio's branding. Afterwards the stock
+UI cannot be restored without a firmware reinstall. It refuses to run unless you set
+`FOLIO_I_UNDERSTAND_THIS_IS_PERMANENT=yes`. Back up first, for example
 `ssh root@192.168.15.244 'tar cf - /opt/amazon /usr/java /etc/upstart' > amazon-backup.tar`, and keep that file
 private: it is Amazon's software and must never be committed or shared.
 
@@ -110,10 +132,16 @@ Known trap: deleting `/var/local/kindleforeink_weblabs.json` or other Amazon dyn
 server from starting (`FormatEPDC` empty). The script no longer deletes that file; if you hit it, make
 `/etc/upstart/makexconfig` fall back to `epdcFormat=Y8`.
 
-**Troubleshooting.** Blank screen with the cable plugged in at boot: boot with the cable out and plug in after
-Home shows. `/var/log/messages` and `/var/log/Xorg.0.log` are the first places to look. Music clicks or freezes:
-see the notes at the top of `app/src/music.rs` (the mixer only plays complete files, so tracks are decoded into
-segment files).
+### Troubleshooting
+
+| Problem | What to do |
+|---|---|
+| `./install.sh` can't reach the Kindle | Data cable? USB networking on? Boot with the cable out, plug in after Home shows. Your computer should show a new network interface (192.168.15.x). |
+| Blank screen with the cable plugged in at boot | Boot with the cable out; plug in after Home shows. |
+| Taps land in the wrong place | *Settings → Calibrate touch*, and tap the exact centre of each circle. |
+| Screen shows only the Kindle logo after step 5 | X server didn't start: see the known trap above. Logs: `/var/log/messages`, `/var/log/Xorg.0.log`. |
+| Music clicks or freezes | See the notes at the top of `app/src/music.rs` (the mixer only plays complete files, so tracks are decoded into segment files). |
+| No books show up | Files must be in `books/` on the FOLIO drive; eject before unplugging. *Settings → Rescan library*. |
 
 ## Using Folio
 
@@ -143,7 +171,33 @@ Everything is cross-compiled for ARMv7 (hard-float, musl, static) inside Docker 
 build/build-app.sh      # -> build/dist/kos   (this is also what CI runs)
 ```
 
-**Native helpers (not built by CI).** `kreader` (C, `native/kreader.c`) links a static MuPDF; `mobitool`
+**Native helpers.** `build/fetch-deps.sh` builds them all from pinned sources in Docker into `build/dist/`
+(or one: `build/fetch-deps.sh kreader|mobitool|ddjvu`); the first run takes 10-20 minutes.
+
+* `kreader` (C, `native/kreader.c`) links a static MuPDF 1.24.11 built with the TOFU font flags (drops large font
+  data), no X11/GL, and IBM Plex substituted for the built-in Nimbus fonts, so book text matches Folio's own.
+* `mobitool` (libmobi, pinned commit) converts MOBI/AZW/AZW3; `ddjvu` (djvulibre 3.5.28) converts DjVu.
+* `fbink` draws to the e-ink panel. It ships with KUAL; `./install.sh` copies it from your Kindle, or take a release
+  binary from <https://github.com/NiLuJe/FBInk>.
+
+**Dictionary:** `data/dict.tsv` is WordNet 3.0 and `dict_old.tsv` is Webster's 1913 for archaic words (optional);
+  both are `word<TAB>definition`, sorted by lowercase word.
+
+## Building
+
+Everything is cross-compiled for ARMv7 (hard-float, musl, static) inside Docker image
+`messense/rust-musl-cross:armv7-musleabihf`. Nothing is built on the Kindle.
+
+**The app (`kos`, Rust):**
+
+```sh
+build/build-app.sh      # -> build/dist/kos   (this is also what CI runs)
+```
+
+**Native helpers.** `build/fetch-deps.sh` builds all of them (or one: `build/fetch-deps.sh kreader|mobitool|ddjvu`) from
+pinned sources in Docker into `build/dist/`; this takes 10-20 minutes the first time. Details of what it does:
+
+**(details)** `kreader` (C, `native/kreader.c`) links a static MuPDF; `mobitool`
 (libmobi) and `ddjvu` (djvulibre) convert MOBI/AZW and DjVu; `fbink` draws to the e-ink panel. Notes from the
 original build, reconstructed from memory of what worked on the author's machine (expect to adjust):
 
@@ -165,7 +219,8 @@ python3 build/dict/wordnet.py WordNet-3.0/dict dict.tsv
 
 Put `dict.tsv` (and optionally `dict_old.tsv`) under `/mnt/us/kos-update/` on the drive, or in `/var/local/kos/data/`.
 
-**Releases.** Pushing a tag `vX.Y.Z` makes CI build `kos` and attach it to a GitHub Release.
+**Releases.** Pushing a tag `vX.Y.Z` makes CI build `kos`, `kreader`, `mobitool` and `ddjvu` and attach them to a
+GitHub Release; `./install.sh` downloads from there.
 
 ## Developing
 
@@ -208,7 +263,7 @@ warranty. Keep a backup of anything you remove, and don't run `remove-amazon.sh`
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). The most valuable contributions are reports from other models and
-firmware, reproducible native builds (`build/fetch-deps.sh`), and fixes for anything under *Known limits*.
+firmware, fixes for anything under *Known limits*.
 Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License

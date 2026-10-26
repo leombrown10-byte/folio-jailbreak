@@ -1,4 +1,4 @@
 #!/bin/sh
 # run a command on the Kindle (stdin passes through)
 D=$(dirname "$0")
-SSH_ASKPASS="$D/askpass.sh" SSH_ASKPASS_REQUIRE=force exec ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PreferredAuthentications=password root@192.168.15.244 "$@"
+SSH_ASKPASS="$D/askpass.sh" SSH_ASKPASS_REQUIRE=force exec ssh -q -o ConnectTimeout=${KS_TIMEOUT:-10} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PreferredAuthentications=password root@192.168.15.244 "$@"

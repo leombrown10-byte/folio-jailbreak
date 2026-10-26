@@ -2,6 +2,7 @@
 build/backup/
 
 # Third-party source trees and tarballs (fetched by build/fetch-deps.sh)
+build/deps/
 build/mupdf-*/
 build/mupdf*.tgz
 build/djvulibre-*/
