@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-* Runs on any panel size: the 1072×1448 canvas is scaled to the real panel; panel size, touch device and power key are detected (see docs/DEVICES.md). Unscaled and unchanged on 1072×1448 models.
+* Runs on any panel size: the 1072×1448 canvas is scaled to the real panel; panel size, touch device and power key are detected (see Supported devices in the README). Unscaled and unchanged on 1072×1448 models.
 * Simulator hook: with `KOS_SIM=host:port` the app draws to and takes touches from [folio-sim](https://github.com/leombrown10-byte/folio-sim) (not yet published); `KOS_ROOT` redirects device paths.
 * Friendlier: first-run how-to card (also under Settings > More), reader hint for new readers, confirmation before restart/power off/recalibrate/developer USB, a "Connect headphones" button on the Music tab.
 * Draggable quick-panel sliders; top and bottom margin sliders; music sleep timer.
