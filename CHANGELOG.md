@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - 2026-10-25
 
 * Easier setup: `./install.sh` (checks the Kindle, fetches or builds what's missing, installs, can restore the stock UI), `build/fetch-deps.sh` (reproducible builds of kreader/mobitool/ddjvu; kreader and ddjvu verified byte-identical to the originals), releases now carry all helpers, README install section rewritten with troubleshooting.
 * Runs on any panel size: the 1072×1448 canvas is scaled to the real panel; panel size, touch device and power key are detected (see Supported devices in the README). Unscaled and unchanged on 1072×1448 models.
