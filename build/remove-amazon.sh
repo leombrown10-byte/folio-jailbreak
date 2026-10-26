@@ -3,7 +3,7 @@
 # Keeps what Folio depends on: the Bluetooth/audio/power/USB/screen services and the jailbreak plumbing.
 set -e
 # POINT OF NO RETURN. This deletes Amazon's software from the device; there is no way back to the stock UI
-# except a factory firmware restore. Take a backup first (see docs/INSTALL.md) and confirm explicitly:
+# except a factory firmware restore. Take a backup first (see the Install section of the README) and confirm explicitly:
 [ "$FOLIO_I_UNDERSTAND_THIS_IS_PERMANENT" = "yes" ] || { echo "refusing: set FOLIO_I_UNDERSTAND_THIS_IS_PERMANENT=yes to run"; exit 1; }
 D=$(cd "$(dirname "$0")" && pwd)
 KS="$D/ks"
