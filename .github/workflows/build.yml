@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Cross-compile kos (ARMv7 musl)
         run: build/build-app.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: kos
           path: build/dist/kos
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build kreader (MuPDF), mobitool, ddjvu
         run: build/fetch-deps.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: natives
           path: |
