@@ -4,6 +4,10 @@ updates:
     directory: /app
     schedule:
       interval: weekly
+    ignore:
+      # 0.6 changed the decoding API; the player (app/src/music.rs) needs porting first
+      - dependency-name: symphonia
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
