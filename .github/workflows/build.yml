@@ -12,7 +12,7 @@ jobs:
   app:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Cross-compile kos (ARMv7 musl)
         run: build/build-app.sh
       - uses: actions/upload-artifact@v4
@@ -24,7 +24,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build kreader (MuPDF), mobitool, ddjvu
         run: build/fetch-deps.sh
       - uses: actions/upload-artifact@v4
